@@ -1,0 +1,154 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: MT-WAN Config Worker
+  license:
+    name: MIT
+servers:
+  - url: http://localhost/v1
+paths:
+  /{hostname}/interface/vlan:
+    parameters:
+    - $ref: "#/components/parameters/hostname"
+    get:
+      parameters:
+      - name: fields
+        in: query
+        schema:
+          type: array
+          items:
+            type: string
+      - name: where
+        in: query
+        style: deepObject
+        explode: true
+        schema:
+          type: object
+      - name: limit
+        in: query
+        schema:
+          type: number
+      operationId: config.config.interface_vlan_get
+      responses:
+        '200':
+          description: List interfaces with type vlan
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/interface_vlan"
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      operationId: config.config.interface_vlan_post
+      requestBody:
+        description: Optional description in *Markdown*
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/interface_vlan'
+      responses:
+        '201':
+          description: Created
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  '.id':
+                    type: string
+                    example: '*1'
+    delete:
+      parameters:
+      - name: ids
+        in: query
+        required: true
+        schema:
+          type: array
+          items:
+            type: string
+            example: '*1'
+      operationId: config.config.interface_vlan_delete
+      responses:
+        '204':
+          description: Null response
+
+    patch:
+      parameters:
+      - name: ids
+        in: query
+        required: true
+        schema:
+          type: array
+          items:
+            type: string
+            example: '*1'
+      requestBody:
+        description: Optional description in *Markdown*
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/interface_vlan'
+      operationId: config.config.interface_vlan_patch
+      responses:
+        '204':
+          description: Null response
+
+components:
+  parameters:
+    hostname:
+      in: path
+      name: hostname
+      required: true
+      description: The management hostname/IP of the node
+      schema:
+        type: string
+        example: r1.london.company.com
+  schemas:
+    iface:
+      properties:
+        name:
+          type: string
+        mtu:
+          type: integer
+          default: 1500
+        arp:
+          type: string
+          enum: ["disabled","enabled","local-proxy-arp","proxy-arp","reply-only"]
+          default: enabled
+        disabled:
+          type: boolean
+          default: false
+        comment:
+          type: string
+
+    interface_vlan:
+      allOf:
+        - $ref: '#/components/schemas/iface'
+        - type: object
+          properties:
+            name:
+              type: string
+              example: vlan1
+            interface:
+              type: string
+              example: ether1
+            vlan-id:
+              type: integer
+              minimum: 1
+              maximum: 4094
+
+    Error:
+      required:
+        - message
+      properties:
+        message:
+          type: string
