@@ -1,6 +1,6 @@
 from typing import Tuple, Dict, Any, List
 from librouteros.query import Key
-from connect import ConnectionManager
+from .connect import ConnectionManager
 
 
 # GET - parameters in query

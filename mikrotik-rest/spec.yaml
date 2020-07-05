@@ -28,7 +28,7 @@ paths:
         in: query
         schema:
           type: number
-      operationId: config.config.interface_vlan_get
+      operationId: api.cfg.interface_vlan_get
       responses:
         '200':
           description: List interfaces with type vlan
@@ -46,7 +46,7 @@ paths:
                 $ref: "#/components/schemas/Error"
 
     post:
-      operationId: config.config.interface_vlan_post
+      operationId: api.cfg.interface_vlan_post
       requestBody:
         description: Optional description in *Markdown*
         required: true
@@ -75,7 +75,7 @@ paths:
           items:
             type: string
             example: '*1'
-      operationId: config.config.interface_vlan_delete
+      operationId: api.cfg.interface_vlan_delete
       responses:
         '204':
           description: Null response
@@ -97,7 +97,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/interface_vlan'
-      operationId: config.config.interface_vlan_patch
+      operationId: api.cfg.interface_vlan_patch
       responses:
         '204':
           description: Null response

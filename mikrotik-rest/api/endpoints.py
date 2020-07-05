@@ -1,10 +1,10 @@
 from typing import Dict
-from node import Node
+from .node import Node
 from settings import USERNAME, PASSWORD
 from librouteros.exceptions import ProtocolError, ConnectionClosed
 from socket import timeout
 
-error_codes = {
+http_error_codes = {
     ProtocolError: 400,
     ConnectionClosed: 502,
     ConnectionError: 502,
@@ -25,7 +25,7 @@ class Endpoint:
 
     def __call__(self, **kwargs):
         try:
-            node = Config.nodes.get(kwargs['hostname'])
+            node = Resolver.nodes.get(kwargs['hostname'])
             if not node:
                 node = Node(kwargs['hostname'], USERNAME, PASSWORD)
             node_method = getattr(node, self.method)
@@ -35,10 +35,10 @@ class Endpoint:
         except (ProtocolError, ConnectionClosed, timeout, ConnectionError) as e:
             err_type = type(e)
             for err_supertype in err_type.mro():
-                if err_supertype in error_codes:
+                if err_supertype in http_error_codes:
                     return {'type': '.'.join((err_type.__module__, err_type.__name__)),
-                            'message' : str(e)
-                            }, error_codes[err_supertype]
+                            'message': str(e)
+                            }, http_error_codes[err_supertype]
 
     @staticmethod
     def parse(endpoint):
@@ -49,7 +49,7 @@ class Endpoint:
         return path, method
 
 
-class Config:
+class Resolver:
 
     nodes: Dict[str, Node] = {}
 
@@ -57,5 +57,4 @@ class Config:
         return Endpoint(name)
 
 
-
-config = Config()
+cfg = Resolver()
