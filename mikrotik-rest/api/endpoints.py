@@ -1,17 +1,20 @@
 from typing import Dict
 from .node import Node
-from settings import USERNAME, PASSWORD
+from settings import USERNAME, PASSWORD, API_TRANSPORT
 from librouteros.exceptions import ProtocolError, ConnectionClosed
 from socket import timeout
+from ssl import SSLError
 
-http_error_codes = {
-    ProtocolError: 400,
-    ConnectionClosed: 502,
-    ConnectionError: 502,
-    timeout: 503
-}
 
 class Endpoint:
+
+    error_codes = {
+        ProtocolError: 400,
+        ConnectionClosed: 502,
+        timeout: 503,
+        ConnectionError: 502,
+        SSLError: 502
+    }
 
     mtranslate = {
         'get': 'print',
@@ -25,20 +28,23 @@ class Endpoint:
 
     def __call__(self, **kwargs):
         try:
-            node = Resolver.nodes.get(kwargs['hostname'])
+            node = Resolver.nodes_cache.get(kwargs['hostname'])
             if not node:
-                node = Node(kwargs['hostname'], USERNAME, PASSWORD)
+                use_ssl = API_TRANSPORT == 'SSL'
+                node = Node(kwargs['hostname'], USERNAME, PASSWORD, use_ssl)
+                Resolver.nodes_cache[kwargs['hostname']] = node
+            print(len(node.cm.connections), node.cm.connections)
             node_method = getattr(node, self.method)
             del kwargs['hostname']
             result = node_method(path=self.path, **kwargs)
             return result
-        except (ProtocolError, ConnectionClosed, timeout, ConnectionError) as e:
-            err_type = type(e)
+        except tuple(Endpoint.error_codes) as err:
+            err_type = type(err)
             for err_supertype in err_type.mro():
-                if err_supertype in http_error_codes:
+                if err_supertype in Endpoint.error_codes:
                     return {'type': '.'.join((err_type.__module__, err_type.__name__)),
-                            'message': str(e)
-                            }, http_error_codes[err_supertype]
+                            'message': str(err)
+                            }, Endpoint.error_codes[err_supertype]
 
     @staticmethod
     def parse(endpoint):
@@ -51,7 +57,7 @@ class Endpoint:
 
 class Resolver:
 
-    nodes: Dict[str, Node] = {}
+    nodes_cache: Dict[str, Node] = {}
 
     def __getattr__(self, name):
         return Endpoint(name)

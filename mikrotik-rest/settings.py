@@ -7,5 +7,9 @@ PASSWORD = 'test'
 # More than that will be dropped after the end of operation
 MAX_CONN_PER_HOST = 10
 # Idle open connection will be dropped after this timeout
-CONN_TIMEOUT = 60
+CONN_TIMEOUT = 120
 
+API_TRANSPORT = 'SSL'  # 'SSL' or 'TCP'
+SSL_CHECK_CERT = True
+SSL_CHECK_HOSTNAME = True
+SSL_CAFILE = './rootCA.crt'

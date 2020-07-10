@@ -1,4 +1,4 @@
-from typing import Tuple, Generator, NewType, Iterable, Dict, Union, Any
+from typing import Tuple, Generator, NewType, Iterable, Dict, Any
 
 import librouteros as ros
 from threading import Lock
@@ -43,30 +43,19 @@ class LockedApi(Locked, ros.Api):
         self.__dict__ = dict(api.__dict__)
         Locked.__init__(self)
 
-"""
-class LockedDeque(Locked, deque):
 
-    def __init__(self, iterable):
-        super(Locked, self).__init__()
-        super(deque, self).__init__(iterable)
-"""
-
-
-def connect(host, username, password, *args, **kwargs):
-    api = ros.connect(host, username, password, *args, **kwargs)
+def connect(host, username, password, **kwargs):
+    api = ros.connect(host, username, password, **kwargs)
     lapi = LockedApi(api)
     return lapi
 
 
 class ConnectionManager:
 
-    def __init__(self, host, user, password):
-        self.user = user
-        self.password = password
-        self.host = host
+    def __init__(self, **connect_args):
+        self.connect_args = connect_args
         self._cnt = counter()
-        api = connect(host, user, password)
-        #TODO: move params to settings
+        api = connect(**connect_args)
         self.connections = ExpiringDict(max_len=MAX_CONN_PER_HOST,
                                         max_age_seconds=CONN_TIMEOUT,
                                         items={self._id: api})
@@ -83,7 +72,7 @@ class ConnectionManager:
                     free_api = api
                     break
             else:
-                free_api = connect(self.host, self.user, self.password)
+                free_api = connect(**self.connect_args)
                 free_api.acquire()
                 self.connections[self._id] = free_api
             return free_api
