@@ -12,4 +12,4 @@ CONN_TIMEOUT = 120
 API_TRANSPORT = 'SSL'  # 'SSL' or 'TCP'
 SSL_CHECK_CERT = True
 SSL_CHECK_HOSTNAME = True
-SSL_CAFILE = './rootCA.crt'
+SSL_CAFILE = 'misc/rootCA.crt'
