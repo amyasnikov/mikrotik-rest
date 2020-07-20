@@ -16,13 +16,6 @@ class Endpoint:
         SSLError: 502
     }
 
-    mtranslate = {
-        'get': 'print',
-        'post': 'add',
-        'patch': 'set',
-        'delete': 'remove'
-    }
-
     def __init__(self, endpoint):
         self.path, self.method = Endpoint.parse(endpoint)
 
@@ -50,7 +43,7 @@ class Endpoint:
     def parse(endpoint):
         ep = endpoint.split('.')[-1]
         fields = ep.split('_')
-        method = Endpoint.mtranslate[fields.pop()]
+        method = fields.pop()
         path = '/' + '/'.join(fields)
         return path, method
 
