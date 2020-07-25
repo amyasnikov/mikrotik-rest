@@ -1,0 +1,149 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: MT-WAN Config Worker
+  license:
+    name: MIT
+servers:
+  - url: http://localhost/v1
+paths:
+{% for endpoint in endpoints %}
+  {% set ep_underscored = endpoint | trim('/') | replace ('/', '_') %}
+  /{hostname}{{ endpoint }}:
+    parameters:
+    - $ref: "#/components/parameters/hostname"
+  {% for method in endpoints[endpoint]['commands'] %}
+    {{ method }}:
+      operationId: api.cfg.{{ ep_underscored + '_' + method  }}
+  {% if method == 'get' %}
+      parameters:
+      - $ref: "#/components/parameters/fields"
+      - $ref: "#/components/parameters/where"
+      - $ref: "#/components/parameters/limit"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  {% if 'params' in endpoints[endpoint] %}
+                  allOf:
+                    {% if '.id' in endpoints[endpoint]['params'] %}
+                    - $ref: '#/components/schemas/id'
+                    {% endif %}
+                    - $ref: '#/components/schemas/{{ ep_underscored }}'
+                    - $ref: '#/components/schemas/read_only_obj'
+                  {% else %}
+                  $ref: '#/components/schemas/read_only_obj'
+                  {% endif %}
+
+  {% elif method == 'post' %}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+              {% if '.id' in endpoints[endpoint]['params'] %}
+              - $ref: '#/components/schemas/id'
+              {% endif %}
+              - $ref: '#/components/schemas/{{ ep_underscored }}'
+      responses:
+        '201':
+          description: Created
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/id'
+  {% elif method == 'patch' %}
+      {% if '.id' in endpoints[endpoint]['params'] %}
+      parameters:
+      - $ref: "#/components/parameters/ids"
+      {% endif %}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/{{ ep_underscored }}'
+      responses:
+        '204':
+          description: Null response
+  {% elif method == 'delete' %}
+      parameters:
+      - $ref: "#/components/parameters/ids"
+      responses:
+        '204':
+          description: Null response
+  {% endif %}
+  {% endfor %}
+{% endfor %}
+
+components:
+  parameters:
+    hostname:
+      in: path
+      name: hostname
+      required: true
+      description: The management hostname/IP of the node
+      schema:
+        type: string
+        example: r1.london.company.com
+    fields:
+      in: query
+      name: fields
+      schema:
+        type: array
+        items:
+          type: string
+    where:
+      in: query
+      name: where
+      style: deepObject
+      explode: true
+      schema:
+        type: object
+    limit:
+      in: query
+      name: limit
+      schema:
+        type: number
+    ids:
+      in: query
+      name: ids
+      required: true
+      schema:
+        type: array
+        items:
+          type: string
+          example: '*1'
+
+  schemas:
+    id:
+      type: object
+      properties:
+        .id:
+          type: string
+          description: "Unique ID of the entity. NOT persistent across device reboots"
+          example: "*1"
+    read_only_obj:
+      type: object
+      additionalProperties:
+        type: string
+        readOnly: true
+    {% for endpoint in endpoints %}
+    {% if 'params' in endpoints[endpoint] %}
+    {{ endpoint | trim('/') | replace ('/', '_') }}:
+      type: object
+      properties:
+        {% for param in endpoints[endpoint]['params'] %}
+          {% if param != '.id' %}
+          {{ param }}:
+            type: string
+          {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% endfor %}
+

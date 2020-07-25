@@ -6,16 +6,20 @@ from paramiko import Channel, SSHClient, AutoAddPolicy
 
 
 class CliNode(Node):
-    def __init__(self, name, type='subtree', *args, **kwargs):
+    def __init__(self, name, type='subtree', separator='/', **kwargs):
         self.type = type
-        super().__init__(name, *args, **kwargs)
+        separator = separator
+        super().__init__(name, **kwargs)
+
+    def full_name(self, separator='/'):
+        path = [node.name for node in self.path]
+        path[0] = path[0].replace(' ', separator)
+        return separator.join(path)
 
     def __str__(self):
-        return ' '.join(node.name for node in self.path)
+        return self.full_name(' ')
 
     def __repr__(self):
-        #        orig = super().__repr__()
-        #        return orig[:9] + orig[10:] if orig[9]=='/' else orig
         return str(self) if self.type == 'subtree' else self.name
 
 
@@ -28,16 +32,17 @@ class NodeFilter:
 class CliParser:
 
     menutypes = {
-        'subtree': re.compile(r'(?<=\x1b\[m\x1b\[36m).+?(?=\x1b\[m\x1b\[35m)'),
+        'subtree': re.compile(r'(?<=\x1b\[m\x1b\[36m)[a-z -0-9]+?(?=\x1b\[m\x1b\[35m)'),
         'cmd': re.compile(r'(?<=\x1b\[m\x1b\[35m).+?(?=\x1b\[)', flags=re.DOTALL)
     }
-    params = re.compile(r'(?<=value-name=).+?(?=\x1b\[9999B\[)', flags=re.DOTALL)
+    params = re.compile(r'(?<=value-name=).+?(?=\x1b\[9999B\[|\[\x1b\[m\x1b\[36m)', flags=re.DOTALL)
     expandable = re.compile(r'^.+?(?=\x1b)')
 
     @classmethod
     def trim_n_strip(cls, finds: List[str]) -> Set[str]:
         items = set()
         for entry in finds:
+            entry = entry.replace('\x1b[m', '')
             entry = entry.replace('\r', '')
             entry = entry.replace('\n', ' ')
             items.update(entry.split(' '))
@@ -58,7 +63,7 @@ class CliParser:
     @classmethod
     def find_params(cls, output_str: str) -> Set[str]:
         search_res = cls.params.findall(output_str)
-        return cls.trim_n_strip(search_res)
+        return cls.trim_n_strip(search_res[0:1])
 
     def __init__(self, hostname, username, password):
         self.__node_filters = []
@@ -86,6 +91,7 @@ class CliParser:
         self.shell.send(
             '/system logging disable [find where action=echo disabled=no]\n')
         self.__read_all()
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.shell.send(
@@ -167,7 +173,7 @@ class CliParser:
 
 if __name__ == '__main__':
     with CliParser('192.168.0.99', 'test', 'test') as cp:
-        cp.add_filter(match=lambda x: x.type == 'cmd',
-                      allow=lambda x: x.name != 'comment')
-        tree = cp.get_syntax_tree('/interface bridge')
+#        cp.add_filter(match=lambda x: x.type == 'cmd',
+#                      allow=lambda x: x.name != 'comment')
+        tree = cp.get_syntax_tree('/interface bridge mdb')
         print(RenderTree(tree, style=AsciiStyle))
