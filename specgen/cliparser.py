@@ -14,7 +14,10 @@ class CliNode(Node):
     def full_name(self, separator='/'):
         path = [node.name for node in self.path]
         path[0] = path[0].replace(' ', separator)
-        return separator.join(path)
+        name = separator.join(path)
+        if name[:1] == '//':
+            name = name[1:]
+        return name
 
     def __str__(self):
         return self.full_name(' ')
@@ -32,7 +35,7 @@ class NodeFilter:
 class CliParser:
 
     menutypes = {
-        'subtree': re.compile(r'(?<=\x1b\[m\x1b\[36m)[a-z -0-9]+?(?=\x1b\[m\x1b\[35m)'),
+        'subtree': re.compile(r'(?<=\x1b\[m\x1b\[36m)[a-z \-0-9]+?(?=\x1b\[m\x1b\[35m)'),
         'cmd': re.compile(r'(?<=\x1b\[m\x1b\[35m).+?(?=\x1b\[)', flags=re.DOTALL)
     }
     params = re.compile(r'(?<=value-name=).+?(?=\x1b\[9999B\[|\[\x1b\[m\x1b\[36m)', flags=re.DOTALL)
@@ -40,11 +43,13 @@ class CliParser:
 
     @classmethod
     def trim_n_strip(cls, finds: List[str]) -> Set[str]:
+        bad_chars = ('\x1b[m','\x1b[9999B','\r')
         items = set()
         for entry in finds:
-            entry = entry.replace('\x1b[m', '')
-            entry = entry.replace('\r', '')
+            for bad_char in bad_chars:
+                entry = entry.replace(bad_char, '')
             entry = entry.replace('\n', ' ')
+
             items.update(entry.split(' '))
         try:
             items.remove('')
@@ -98,7 +103,7 @@ class CliParser:
             '/system logging enable [find where action=echo disabled=yes]\n')
         self.client.close()
 
-    def __read_all(self, timeout=1):
+    def __read_all(self, timeout=1) -> str:
         if self.shell.gettimeout() != timeout:
             self.shell.settimeout(timeout)
         try:
@@ -170,10 +175,16 @@ class CliParser:
     def clear_filters(self):
         self.__node_filters = []
 
+    def get_version(self):
+        _, stdout, _ = self.client.exec_command('/system resource print')
+        output = stdout.read().decode('utf8')
+        version = re.search(r'(?<=version: )[0-9.]+', output).group(0)
+        return version
+
 
 if __name__ == '__main__':
     with CliParser('192.168.0.99', 'test', 'test') as cp:
-#        cp.add_filter(match=lambda x: x.type == 'cmd',
-#                      allow=lambda x: x.name != 'comment')
-        tree = cp.get_syntax_tree('/interface bridge mdb')
-        print(RenderTree(tree, style=AsciiStyle))
+#        cp.add_filter(match=lambda x: x.type == 'param',
+#                      allow=lambda x: x.name != 'vlan-id')
+        tree = cp.get_syntax_tree('/caps-man actual-interface-configuration')
+    print(RenderTree(tree, style=AsciiStyle))

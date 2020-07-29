@@ -1,6 +1,6 @@
 openapi: "3.0.0"
 info:
-  version: 1.0.0
+  version: 1.0::{{mikrotik_version}}
   title: MT-WAN Config Worker
   license:
     name: MIT
@@ -131,7 +131,6 @@ components:
     read_only_obj:
       type: object
       additionalProperties:
-        type: string
         readOnly: true
     {% for endpoint in endpoints %}
     {% if 'params' in endpoints[endpoint] %}
