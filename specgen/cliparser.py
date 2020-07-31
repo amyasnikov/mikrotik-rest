@@ -15,7 +15,7 @@ class CliNode(Node):
         path = [node.name for node in self.path]
         path[0] = path[0].replace(' ', separator)
         name = separator.join(path)
-        if name[:1] == '//':
+        if name[:2] == '//':
             name = name[1:]
         return name
 
