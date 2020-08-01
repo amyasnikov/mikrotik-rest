@@ -33,7 +33,9 @@ paths:
                     {% if '.id' in endpoints[endpoint]['params'] %}
                     - $ref: '#/components/schemas/id'
                     {% endif %}
+                    {% if endpoints[endpoint]['params'] %}
                     - $ref: '#/components/schemas/{{ ep_underscored }}'
+                    {% endif %}
                     - $ref: '#/components/schemas/read_only_obj'
                   {% else %}
                   $ref: '#/components/schemas/read_only_obj'
@@ -133,7 +135,7 @@ components:
       additionalProperties:
         readOnly: true
     {% for endpoint in endpoints %}
-    {% if 'params' in endpoints[endpoint] %}
+    {% if endpoints[endpoint]['params'] %}
     {{ endpoint | trim('/') | replace ('/', '_') }}:
       type: object
       properties:
