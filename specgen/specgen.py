@@ -2,6 +2,7 @@
 import os
 from collections import defaultdict
 from typing import Dict, List
+from pprint import pprint
 
 from anytree import PreOrderIter
 from jinja2 import Environment, FileSystemLoader
@@ -13,16 +14,22 @@ from translator import Translate
 def prepare_endpoints_for_template(root_node: CliNode) -> Dict[str, Dict[str, List[str]]]:
     endpoints = {}
     for node in PreOrderIter(root_node, filter_=lambda x: x.type == 'subtree'):
-        endpoints[node.full_name()] = defaultdict(list)
+        node_fullname = node.full_name()
+        endpoints[node_fullname] = defaultdict(list)
         for command in filter(lambda x: x.type == 'cmd', node.children):
-            endpoints[node.full_name()]['commands'].append(
+            endpoints[node_fullname]['commands'].append(
                 Translate.to_http(command.name))
             if command.name == 'set':
-                endpoints[node.full_name()]['params'].extend(x.name for x in command.children)
+                endpoints[node_fullname]['params'].extend(x.name for x in command.children)
+            if not endpoints[node_fullname]['params']:
+                endpoints[node_fullname]['commands'] = \
+                    list(filter(lambda m: m not in ('post', 'patch', 'delete'),
+                                endpoints[node_fullname]['commands']))
+    pprint(endpoints)
     return endpoints
 
 
-def parse_cli(parser: CliParser, parse_root) -> CliNode:
+def parse_cli(parser: CliParser, parse_root: str) -> CliNode:
     with parser:
         parser.add_filter(match=lambda x: x.type == 'cmd',
                       allow=lambda x: x.name in ('add', 'set', 'remove', 'print'))
@@ -51,7 +58,7 @@ class SpecGenerator:
 
 if __name__ == "__main__":
     host, username, password = '192.168.0.99', 'test', 'test'
-    sg = SpecGenerator(host, username, password, 'spec_template.yaml', '/')
+    sg = SpecGenerator(host, username, password, 'spec_template.yaml', '/certificate')
     with open('spec.yaml', 'w') as f:
         f.write(sg.get_spec())
 
