@@ -1,4 +1,5 @@
 from typing import Tuple, Generator, NewType, Iterable, Dict, Any
+from itertools import count
 
 import librouteros as ros
 from threading import Lock
@@ -8,13 +9,6 @@ from settings import MAX_CONN_PER_HOST, CONN_TIMEOUT
 
 Where = NewType('Where', Generator[str, None, None])
 MtEntry = NewType('MtEntry', Dict[str, Any])
-
-
-def counter():
-    i = 0
-    while True:
-        yield i
-        i += 1
 
 
 class Locked:
@@ -54,7 +48,7 @@ class ConnectionManager:
 
     def __init__(self, **connect_args):
         self.connect_args = connect_args
-        self._cnt = counter()
+        self._cnt = count()
         api = connect(**connect_args)
         self.connections = ExpiringDict(max_len=MAX_CONN_PER_HOST,
                                         max_age_seconds=CONN_TIMEOUT,
@@ -104,7 +98,7 @@ class ConnectionManager:
                 query = query.select(*fields)
             if where_fields:
                 query = query.where(*where_fields)
-            c = counter()
+            c = count()
             return tuple(i for i in query if next(c) < limit)
         finally:
             api.release()
