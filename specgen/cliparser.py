@@ -1,12 +1,14 @@
 import socket, re, time
 from dataclasses import dataclass
-from typing import Dict, Set, List, Callable
+from typing import Dict, Set, List, Callable, Iterator, ClassVar
+from abc import ABC, abstractmethod, abstractclassmethod
+
 from anytree import Node, AsciiStyle, RenderTree
-from paramiko import Channel, SSHClient, AutoAddPolicy
+from paramiko import SSHClient, AutoAddPolicy
 
 
 class CliNode(Node):
-    def __init__(self, name, type='subtree', separator='/', **kwargs):
+    def __init__(self, name, type, separator='/', **kwargs):
         self.type = type
         separator = separator
         super().__init__(name, **kwargs)
@@ -26,7 +28,7 @@ class CliNode(Node):
         return str(self) if self.type == 'subtree' else self.name
 
 
-@dataclass
+@dataclass(frozen=True)
 class NodeFilter:
     match: Callable[[CliNode], bool]
     allow: Callable[[CliNode], bool]
@@ -38,37 +40,45 @@ class CliParser:
         'subtree': re.compile(r'(?<=\x1b\[m\x1b\[36m)[a-z \-0-9]+?(?=\x1b\[m\x1b\[35m)'),
         'cmd': re.compile(r'(?<=\x1b\[m\x1b\[35m).+?(?=\x1b\[)', flags=re.DOTALL)
     }
-    params = re.compile(r'(?<=value-name=).+?(?=\x1b\[9999B\[|\[\x1b\[m\x1b\[36m)', flags=re.DOTALL)
-    expandable = re.compile(r'^.+?(?=\x1b)')
+    params = re.compile(r'([a-z.-0-9<>]+) +-- +([a-z.-0-9A-Z ]*)',
+                        flags=re.DOTALL)
 
     @classmethod
-    def trim_n_strip(cls, finds: List[str]) -> Set[str]:
-        bad_chars = ('\x1b[m','\x1b[9999B','\r')
-        items = set()
-        for entry in finds:
-            for bad_char in bad_chars:
-                entry = entry.replace(bad_char, '')
-            entry = entry.replace('\n', ' ')
+    def find_leaves(cls, output_str: str) -> Iterator[CliNode]:
+        def trim_n_strip(finds: List[str]) -> Set[str]:
+            bad_chars = ('\x1b[m', '\r')
+            items = set()
+            for entry in finds:
+                for bad_char in bad_chars:
+                    entry = entry.replace(bad_char, '')
+                entry = entry.replace('\n', ' ')
 
-            items.update(entry.split(' '))
-        try:
-            items.remove('')
-        except KeyError:
-            pass
-        return items
+                items.update(entry.split(' '))
+            try:
+                items.remove('')
+            except KeyError:
+                pass
+            return items
 
-    @classmethod
-    def find_leaves(cls, output_str: str) -> Dict[str, Set[str]]:
-        leaves = {k: () for k in cls.menutypes}
-        for t in cls.menutypes:
-            search_res = cls.menutypes[t].findall(output_str)
-            leaves[t] = cls.trim_n_strip(search_res)
-        return leaves
+        for type_ in cls.menutypes:
+            search_res = cls.menutypes[type_].findall(output_str)
+            yield from map(lambda name: CliNode(name, type_),
+                           trim_n_strip(search_res))
 
     @classmethod
-    def find_params(cls, output_str: str) -> Set[str]:
-        search_res = cls.params.findall(output_str)
-        return cls.trim_n_strip(search_res[0:1])
+    def find_params(cls, output_str: str) -> Iterator[CliNode]:
+        def get_clinode(match: re.Match) -> CliNode:
+            name = match.group(1)
+            if name == '<numbers>':
+                name = '.id'
+            descr = match.group(2)
+            description = {'description': descr} if descr else {}
+            return CliNode(name=name, type='param', **description)
+
+        bad_chars = ('\x1b[m\x1b[33m', '\x1b[m\x1b[32m', '\x1b[m')
+        for char in bad_chars:
+            output_str = output_str.replace(char, '')
+        yield from map(get_clinode, cls.params.finditer(output_str))
 
     def __init__(self, hostname, username, password):
         self.__node_filters = []
@@ -114,60 +124,40 @@ class CliParser:
         return res.decode('utf-8')
 
     def get_syntax_tree(self, root='') -> CliNode:
-        root_node = CliNode(root)
-        self.__build_tree(root_node)
+        root_node = CliNode(root, type='subtree')
+        self.__build_tree(root_node, CliParser.find_leaves)
         return root_node
 
-    def __get_tab_options(self, subtree, find_func, tab=' \t'):
+    def __get_tab_options(self,
+                          subtree: str,
+                          find_func: Callable[[str], Iterator[CliNode]],
+                          tab: str) -> Iterator[CliNode]:
         self.shell.send(chr(3))  # Ctrl-C
         self.__read_all()
         self.shell.send(subtree + tab)
-        return find_func(self.__read_all())
+        yield from find_func(self.__read_all())
 
-    def __build_tree(self, current_node: CliNode):
-
-        def get_params(path: str) -> List[str]:
-            params = self.__get_tab_options(
-                path + ' edit number=0 value-name=', CliParser.find_params)
-            if params:
-                params.add('.id')
-            else:
-                params = self.__get_tab_options(
-                    path + ' edit value-name=', CliParser.find_params)
-            expandables = tuple(filter(lambda x: '...' in x, params))
-            for exp in expandables:
-                params.remove(exp)
-                exp_prefix = CliParser.expandable.findall(exp)[0]
-                aux_params = self.__get_tab_options(
-                    subtree=f'{path} edit value-name={exp_prefix}',
-                    find_func=CliParser.find_params,
-                    tab='\t\t')
-                aux_params.remove(exp_prefix)
-                params.update(aux_params)
-            return sorted(params)
-
+    def __build_tree(self,
+                     current_node: CliNode,
+                     find_func: Callable[[str], Iterator[CliNode]],
+                     tab: str = ' \t'):
         path = str(current_node)
-        items = self.__get_tab_options(path, CliParser.find_leaves)
-        for subtree in sorted(items['subtree']):
-            child = self.filter(CliNode(subtree, 'subtree', parent=current_node))
-            if child:
-                self.__build_tree(child)
-        for cmd in sorted(items['cmd']):
-            cmd_node = self.filter(CliNode(type='cmd', name=cmd, parent=current_node))
-            if cmd_node and cmd == 'set':
-                for param in get_params(path):
-                    self.filter(CliNode(type='param', name=param, parent=cmd_node))
+        items_iter = self.__get_tab_options(path, find_func, tab=tab)
+        items_iter = self.filter(items_iter)
+        for item in items_iter:
+            item.parent = current_node
+            if item.type == 'subtree':
+                self.__build_tree(item, CliParser.find_leaves)
+            elif item.type == 'cmd' and item.name == 'set':
+                self.__build_tree(item, CliParser.find_params, tab=' ?')
 
-    def filter(self, node: CliNode):
-        for nf in self.__node_filters:
-            if nf.match(node):
-                if nf.allow(node):
-                    return node
-                else:
-                    node.parent = None
-                    del node
-                    return None
-        return node
+    def filter(self, nodes: Iterator[CliNode]) -> Iterator[CliNode]:
+        def allow(node: CliNode) -> bool:
+            for filter_ in self.__node_filters:
+                if filter_.match(node):
+                    return filter_.allow(node)
+            return True
+        yield from filter(allow, nodes)
 
     def add_filter(self, match, allow):
         self.__node_filters.append(NodeFilter(match, allow))
@@ -186,5 +176,5 @@ if __name__ == '__main__':
     with CliParser('192.168.0.99', 'test', 'test') as cp:
 #        cp.add_filter(match=lambda x: x.type == 'param',
 #                      allow=lambda x: x.name != 'vlan-id')
-        tree = cp.get_syntax_tree('/caps-man actual-interface-configuration')
+        tree = cp.get_syntax_tree('/certificate')
     print(RenderTree(tree, style=AsciiStyle))
