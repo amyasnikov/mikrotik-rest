@@ -1,7 +1,12 @@
-from enum import Enum
+from enum import Enum, EnumMeta
 
 
-class Method(Enum):
+class MethodEnumMeta(EnumMeta):
+    def __getitem__(self, item):
+        return super().__getitem__(item.upper())
+
+
+class Method(Enum, metaclass=MethodEnumMeta):
     POST = 1
     GET = 2
     PATCH = 3
@@ -13,7 +18,7 @@ class Method(Enum):
     REMOVE = -4
 
     def __str__(self):
-        return self.value.lower()
+        return self.name.lower()
 
     def to_mikrotik(self):
         return Method(-abs(self.value))

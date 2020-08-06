@@ -28,12 +28,12 @@ paths:
               schema:
                 type: array
                 items:
-                  {% if 'params' in endpoints[endpoint] %}
+                  {% if endpoint in params %}
                   allOf:
-                    {% if '.id' in endpoints[endpoint]['params'] %}
+                    {% if '.id' in params[endpoint] %}
                     - $ref: '#/components/schemas/id'
                     {% endif %}
-                    {% if endpoints[endpoint]['params'] %}
+                    {% if params[endpoint] %}
                     - $ref: '#/components/schemas/{{ ep_underscored }}'
                     {% endif %}
                     - $ref: '#/components/schemas/read_only_obj'
@@ -48,7 +48,7 @@ paths:
           application/json:
             schema:
               allOf:
-              {% if '.id' in endpoints[endpoint]['params'] %}
+              {% if '.id' in params[endpoint] %}
               - $ref: '#/components/schemas/id'
               {% endif %}
               - $ref: '#/components/schemas/{{ ep_underscored }}'
@@ -60,7 +60,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/id'
   {% elif method == 'patch' %}
-      {% if '.id' in endpoints[endpoint]['params'] %}
+      {% if '.id' in params[endpoint] %}
       parameters:
       - $ref: "#/components/parameters/ids"
       {% endif %}
@@ -135,14 +135,17 @@ components:
       additionalProperties:
         readOnly: true
     {% for endpoint in endpoints %}
-    {% if endpoints[endpoint]['params'] %}
+    {% if params[endpoint] %}
     {{ endpoint | trim('/') | replace ('/', '_') }}:
       type: object
       properties:
-        {% for param in endpoints[endpoint]['params'] %}
+        {% for param in params[endpoint] %}
           {% if param != '.id' %}
           {{ param }}:
             type: string
+            {% if params[endpoint][param]['description'] %}
+            description: {{ params[endpoint][param]['description'] }}
+            {% endif %}
           {% endif %}
         {% endfor %}
     {% endif %}

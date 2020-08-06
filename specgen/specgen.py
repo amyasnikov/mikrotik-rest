@@ -1,30 +1,31 @@
 #!/usr/bin/env python3
 import os
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from anytree import PreOrderIter
 from jinja2 import Environment, FileSystemLoader
 
 from cliparser import CliParser, CliNode
-from translator import Translate
+from method import Method
 
 
-def prepare_endpoints_for_template(root_node: CliNode) -> Dict[str, Dict[str, List[str]]]:
+def prepare_endpoints_for_template(root_node: CliNode) \
+        -> Tuple[Dict[str, Dict[str, List[str]]], Dict[str, Dict[str, str]]]:
     endpoints = {}
+    params = defaultdict(dict)
     for node in PreOrderIter(root_node, filter_=lambda x: x.type == 'subtree'):
         node_fullname = node.full_name()
         endpoints[node_fullname] = defaultdict(list)
         for command in filter(lambda x: x.type == 'cmd', node.children):
             endpoints[node_fullname]['commands'].append(
-                Translate.to_http(command.name))
+                str(Method[command.name].to_http()))
             if command.name == 'set':
-                endpoints[node_fullname]['params'].extend(x.name for x in command.children)
-            if not endpoints[node_fullname]['params']:
-                endpoints[node_fullname]['commands'] = \
-                    list(filter(lambda m: m not in ('post', 'patch', 'delete'),
-                                endpoints[node_fullname]['commands']))
-    return endpoints
+                for param in command.children:
+                    params[node_fullname][param.name] = {'description': param.description}
+            if not params[node_fullname]:
+                endpoints[node_fullname]['commands'] = [str(Method.GET)]
+    return endpoints, params
 
 
 def parse_cli(parser: CliParser, parse_root: str) -> CliNode:
@@ -50,8 +51,10 @@ class SpecGenerator:
                                    allow=lambda x: x.name in ('add', 'set', 'remove', 'print'))
             root_node = self.parser.get_syntax_tree(self.parse_root)
             version = self.parser.get_version()
-        endpoints = prepare_endpoints_for_template(root_node)
-        return self.template.render(endpoints=endpoints, mikrotik_version=version)
+        endpoints, params = prepare_endpoints_for_template(root_node)
+        return self.template.render(endpoints=endpoints,
+                                    mikrotik_version=version,
+                                    params=params)
 
 
 if __name__ == "__main__":
