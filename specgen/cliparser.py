@@ -8,9 +8,9 @@ from paramiko import SSHClient, AutoAddPolicy
 
 
 class CliNode(Node):
-    def __init__(self, name, type, separator='/', **kwargs):
+    def __init__(self, name, type, description='', **kwargs):
         self.type = type
-        separator = separator
+        self.description = description
         super().__init__(name, **kwargs)
 
     def full_name(self, separator='/'):
