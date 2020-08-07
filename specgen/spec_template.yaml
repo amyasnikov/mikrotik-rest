@@ -9,6 +9,7 @@ servers:
 paths:
 {% for endpoint in endpoints %}
   {% set ep_underscored = endpoint | trim('/') | replace ('/', '_') %}
+  {% if endpoints[endpoint]['commands'] %}
   /{hostname}{{ endpoint }}:
     parameters:
     - $ref: "#/components/parameters/hostname"
@@ -81,7 +82,9 @@ paths:
           description: Null response
   {% endif %}
   {% endfor %}
+{% endif %}
 {% endfor %}
+
 
 components:
   parameters:

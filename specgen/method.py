@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Iterator
 from enum import Enum, EnumMeta
 
 
@@ -20,20 +22,20 @@ class Method(Enum, metaclass=MethodEnumMeta):
     def __str__(self):
         return self.name.lower()
 
-    def to_mikrotik(self):
+    def to_mikrotik(self) -> Method:
         return Method(-abs(self.value))
 
-    def to_http(self):
+    def to_http(self) -> Method:
         return Method(abs(self.value))
 
     @classmethod
-    def mikrotik_methods(cls):
+    def mikrotik_methods(cls) -> Iterator[Method]:
         return filter(lambda method: method.value < 0, iter(cls))
 
     @classmethod
-    def http_methods(cls):
+    def http_methods(cls) -> Iterator[Method]:
         return filter(lambda method: method.value > 0, iter(cls))
 
     @classmethod
-    def unsafe_methods(cls):
+    def unsafe_methods(cls) -> Iterator[Method]:
         return filter(lambda method: abs(method.value) != 2, iter(cls))

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 from collections import defaultdict
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Set
 
 from anytree import PreOrderIter
 from jinja2 import Environment, FileSystemLoader
@@ -11,20 +11,21 @@ from method import Method
 
 
 def prepare_endpoints_for_template(root_node: CliNode) \
-        -> Tuple[Dict[str, Dict[str, List[str]]], Dict[str, Dict[str, str]]]:
+        -> Tuple[Dict[str, Dict[str, Set[str]]], Dict[str, Dict[str, str]]]:
     endpoints = {}
     params = defaultdict(dict)
     for node in PreOrderIter(root_node, filter_=lambda x: x.type == 'subtree'):
         node_fullname = node.full_name()
-        endpoints[node_fullname] = defaultdict(list)
+        endpoints[node_fullname] = defaultdict(set)
         for command in filter(lambda x: x.type == 'cmd', node.children):
-            endpoints[node_fullname]['commands'].append(
+            endpoints[node_fullname]['commands'].add(
                 str(Method[command.name].to_http()))
             if command.name == 'set':
                 for param in command.children:
                     params[node_fullname][param.name] = {'description': param.description}
-            if not params[node_fullname]:
-                endpoints[node_fullname]['commands'] = [str(Method.GET)]
+        if not params[node_fullname]:
+            endpoints[node_fullname]['commands'] -= \
+                set(str(method) for method in Method.unsafe_methods())
     return endpoints, params
 
 
@@ -59,7 +60,7 @@ class SpecGenerator:
 
 if __name__ == "__main__":
     host, username, password = '192.168.0.99', 'test', 'test'
-    sg = SpecGenerator(host, username, password, 'spec_template.yaml', '/certificate')
+    sg = SpecGenerator(host, username, password, 'spec_template.yaml', '/')
     with open('spec.yaml', 'w') as f:
         f.write(sg.get_spec())
 
