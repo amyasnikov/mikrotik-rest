@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Callable
 
 from anytree import Node
 import re
@@ -9,7 +9,6 @@ from .parser import Parser
 
 
 class NodeType(Enum):
-
     SUBTREE = auto()
     CMD = auto()
     PARAM = auto()
@@ -30,7 +29,7 @@ class CliNode(Node):
         return name
 
     def __str__(self):
-        return self.full_name(' ')
+        return self.full_name(separator=' ')
 
     def __repr__(self):
         return str(self) if self.type is NodeType.SUBTREE else self.name
@@ -60,17 +59,24 @@ class ParseRule:
     search_for: List[Parsers]
     ending: str = ' \t'
     create_new_node: bool = True
-    recurse: bool = True
+    do_recursion: Callable[[CliNode], bool] = lambda node: True
+
+
+@dataclass(frozen=True)
+class NodeFilter:
+    match: Callable[[CliNode], bool]
+    allow: Callable[[CliNode], bool]
 
 
 class TreeBuilder:
-
     rules = {
-        NodeType.SUBTREE: ParseRule([Parsers.SUBTREE, Parsers.CMD]),
         NodeType.CMD: ParseRule([Parsers.PARAM], ' ?'),
+        NodeType.SUBTREE: ParseRule([Parsers.SUBTREE, Parsers.CMD],
+                                    do_recursion=lambda node: node.type == NodeType.SUBTREE
+                                                              or node.name == 'set'),
         NodeType.PARAM: ParseRule([Parsers.PARAM_TYPE], '=?',
                                   create_new_node=False,
-                                  recurse=False)
+                                  do_recursion=lambda node: False)
     }
 
     def __init__(self, hostname, username, password):
@@ -96,15 +102,16 @@ class TreeBuilder:
     def __build_tree(self, current_node: CliNode):
         path = str(current_node)
         parse_rule = TreeBuilder.rules[current_node.type]
+        self.ssh.send(path + parse_rule.ending)
+        output = self.ssh.read_all()
         for parser in parse_rule.search_for:
-            self.ssh.send(path + parse_rule.ending)
-            output = self.ssh.read_all()
             for node_fields in parser.value.finditer(output):
                 if parse_rule.create_new_node:
-                    current_node = CliNode(type=parser.node_type(),
-                                           parent=current_node,
-                                           **node_fields)
+                    new_node = CliNode(type=parser.node_type(),
+                                       parent=current_node,
+                                       **node_fields)
                 else:
                     current_node.__dict__.update(node_fields)
-                if parse_rule.recurse:
-                    self.__build_tree(current_node)
+                    new_node = current_node
+                if parse_rule.do_recursion(new_node):
+                    self.__build_tree(new_node)

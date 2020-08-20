@@ -1,6 +1,5 @@
 import re
 from dataclasses import dataclass
-from enum import Enum
 from typing import Callable, Iterator, Dict, List, Set
 
 
@@ -57,7 +56,7 @@ class Parser:
             param_line = regexp.findall(output_str)[0]
             for type_ in types:
                 if type_ in param_line:
-                    yield types[type_]
+                    yield {'param_type': types[type_]}
                     break
             else:
                 yield {'param_type': ''}

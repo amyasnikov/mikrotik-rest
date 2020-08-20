@@ -1,11 +1,10 @@
 import socket, re, time
 from dataclasses import dataclass
-from typing import Dict, Set, List, Callable, Iterator, ClassVar
-from abc import ABC, abstractmethod, abstractclassmethod
+from typing import Dict, Set, List, Callable, Iterator
 
 from anytree import Node, AsciiStyle, RenderTree
 from paramiko import SSHClient, AutoAddPolicy
-
+from cliparser2 import TreeBuilder
 
 class CliNode(Node):
     def __init__(self, name, type, description='', **kwargs):
@@ -123,7 +122,7 @@ class CliParser:
             res = b''
         return res.decode('utf-8')
 
-    def get_syntax_tree(self, root='') -> CliNode:
+    def get_syntax_tree(self, root='/') -> CliNode:
         root_node = CliNode(root, type='subtree')
         self.__build_tree(root_node, CliParser.find_leaves)
         return root_node
@@ -150,6 +149,9 @@ class CliParser:
                 self.__build_tree(item, CliParser.find_leaves)
             elif item.type == 'cmd' and item.name == 'set':
                 self.__build_tree(item, CliParser.find_params, tab=' ?')
+#            elif item.type == 'param':
+
+
 
     def filter(self, nodes: Iterator[CliNode]) -> Iterator[CliNode]:
         def allow(node: CliNode) -> bool:
@@ -173,8 +175,9 @@ class CliParser:
 
 
 if __name__ == '__main__':
-    with CliParser('192.168.0.99', 'test', 'test') as cp:
+#    with CliParser('192.168.0.99', 'test', 'test') as cp:
 #        cp.add_filter(match=lambda x: x.type == 'param',
 #                      allow=lambda x: x.name != 'vlan-id')
+    with TreeBuilder ('192.168.0.99', 'test', 'test') as cp:
         tree = cp.get_syntax_tree('/certificate')
     print(RenderTree(tree, style=AsciiStyle))
