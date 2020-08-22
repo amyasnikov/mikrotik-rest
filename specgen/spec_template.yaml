@@ -42,7 +42,7 @@ paths:
                   $ref: '#/components/schemas/read_only_obj'
                   {% endif %}
 
-  {% elif method == 'post' %}
+  {% elif method == 'patch' %}
       requestBody:
         required: true
         content:
@@ -60,7 +60,7 @@ paths:
             'application/json':
               schema:
                 $ref: '#/components/schemas/id'
-  {% elif method == 'patch' %}
+  {% elif method == 'post' %}
       {% if '.id' in params[endpoint] %}
       parameters:
       - $ref: "#/components/parameters/ids"
@@ -145,7 +145,7 @@ components:
         {% for param in params[endpoint] %}
           {% if param != '.id' %}
           {{ param }}:
-            type: string
+            type: {{params[endpoint][param]['type'] or 'string'}}
             {% if params[endpoint][param]['description'] %}
             description: {{ params[endpoint][param]['description'] }}
             {% endif %}
