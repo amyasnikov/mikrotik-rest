@@ -26,7 +26,6 @@ class Endpoint:
                 use_ssl = API_TRANSPORT == 'SSL'
                 node = Node(kwargs['hostname'], USERNAME, PASSWORD, use_ssl)
                 Resolver.nodes_cache[kwargs['hostname']] = node
-            print(len(node.cm.connections), node.cm.connections)
             node_method = getattr(node, self.method)
             del kwargs['hostname']
             result = node_method(path=self.path, **kwargs)

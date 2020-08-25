@@ -27,3 +27,11 @@ def check_ssl():
     ca_path = Path(SSL_CAFILE)
     if not ca_path.is_file():
         raise SettingsError(f'SSL_CAFILE: {ca_path.absolute()} does not exist')
+
+
+@register
+def check_spec():
+    spec_path = Path(SPEC_FILE)
+    if not spec_path.is_file():
+        raise SettingsError(f'SPEC_FILE {spec_path.absolute()} does not exist.',
+                            'Use specgen/specgen.py to autogenerate openapi yaml from existing MikroTik device')

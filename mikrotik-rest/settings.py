@@ -1,7 +1,9 @@
-
 # default username and password for login on routers
 USERNAME = 'test'
 PASSWORD = 'test'
+
+# openapi specification file
+SPEC_FILE = 'api/spec.yaml'
 
 # Maximum simultaneous connections stored per host (length of list)
 # More than that will be dropped after the end of operation
