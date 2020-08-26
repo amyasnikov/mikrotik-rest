@@ -38,17 +38,17 @@ class Node:
             self.connection_args['port'] = 8729
         self.cm = ConnectionManager(**self.connection_args)
 
-    def post (self, path: str, body: Dict[str, Any]) -> Tuple[Dict[str, str], int]:
+    def post(self, path: str, body: Dict[str, Any]) -> Tuple[Dict[str, str], int]:
         id = self.cm.add(path, body)
         return {'.id': id}, 201
 
-    def patch (self, path: str, ids: Tuple[str, ...], body: Dict[str, Any]):
+    def patch(self, path: str, ids: Tuple[str, ...], body: Dict[str, Any]):
         id = ','.join(ids)
         body['.id'] = id
         self.cm.update(path, body)
         return '', 204  # No Content
 
-    def get (self, path: str, limit: int = 10 ** 10,
+    def get(self, path: str, limit: int = 10 ** 10,
               fields=None, where=None) -> Tuple[Dict[str, str], int]:
         if where and not fields:
             fields = ('.id',)
@@ -58,7 +58,7 @@ class Node:
                             tuple(Key(k) == v for (k, v) in where.items()), limit)
         return res, 200
 
-    def delete (self, path, id=None, ids=None):
+    def delete(self, path, id=None, ids=None):
         if id:
             self.cm.remove(path, (id,))
         if ids:

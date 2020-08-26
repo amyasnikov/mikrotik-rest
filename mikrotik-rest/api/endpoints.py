@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Tuple
 from .node import Node
 from settings import USERNAME, PASSWORD, API_TRANSPORT
 from librouteros.exceptions import ProtocolError, ConnectionClosed
@@ -39,7 +39,7 @@ class Endpoint:
                             }, Endpoint.error_codes[err_supertype]
 
     @staticmethod
-    def parse(endpoint):
+    def parse(endpoint) -> Tuple[str, str]:
         ep = endpoint.split('.')[-1]
         fields = ep.split('_')
         method = fields.pop()
@@ -51,7 +51,7 @@ class Resolver:
 
     nodes_cache: Dict[str, Node] = {}
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Endpoint:
         return Endpoint(name)
 
 
