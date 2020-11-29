@@ -42,17 +42,13 @@ paths:
                   $ref: '#/components/schemas/read_only_obj'
                   {% endif %}
 
-  {% elif method == 'patch' %}
+  {% elif method == 'post' %}
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              allOf:
-              {% if '.id' in params[endpoint] %}
-              - $ref: '#/components/schemas/id'
-              {% endif %}
-              - $ref: '#/components/schemas/{{ ep_underscored }}'
+              $ref: '#/components/schemas/{{ ep_underscored }}'
       responses:
         '201':
           description: Created
@@ -60,7 +56,7 @@ paths:
             'application/json':
               schema:
                 $ref: '#/components/schemas/id'
-  {% elif method == 'post' %}
+  {% elif method == 'patch' %}
       {% if '.id' in params[endpoint] %}
       parameters:
       - $ref: "#/components/parameters/ids"
