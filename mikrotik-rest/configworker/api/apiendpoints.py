@@ -55,4 +55,4 @@ class Resolver:
         return Endpoint(name)
 
 
-cfg = Resolver()
+api = Resolver()

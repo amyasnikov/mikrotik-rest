@@ -1,1 +1,1 @@
-from .endpoints import cfg
+from .apiendpoints import api

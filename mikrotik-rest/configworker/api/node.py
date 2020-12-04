@@ -1,5 +1,5 @@
-from typing import Tuple, Dict, Any, List, Callable
-from ssl import create_default_context, CERT_NONE, CERT_REQUIRED, SSLContext
+from typing import Tuple, Dict, Any, Callable
+from ssl import create_default_context, CERT_NONE, CERT_REQUIRED
 import settings as setts
 from librouteros.query import Key
 from .connect import ConnectionManager
@@ -49,7 +49,7 @@ class Node:
         return '', 204  # No Content
 
     def get(self, path: str, limit: int = 10 ** 10,
-              fields=None, where=None) -> Tuple[Dict[str, str], int]:
+            fields=None, where=None) -> Tuple[Dict[str, str], int]:
         if where and not fields:
             fields = ('.id',)
         if where is None:
