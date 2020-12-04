@@ -1,7 +1,7 @@
 import re
 from .tree_builder import TreeBuilder
 from .clinode import NodeType, CliNode
-from .ssh import Ssh
+from mtwlib import Ssh
 
 
 def get_single_value(ssh_client: Ssh, cmd: str, regexp: str):

@@ -1,1 +1,0 @@
-from .specgen import SpecGenerator

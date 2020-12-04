@@ -1,8 +1,9 @@
 import sys
 
 from anytree import RenderTree, AsciiStyle
+from mtwlib import Ssh
 
-from cliparser import Ssh, TreeBuilder
+from cliparser import TreeBuilder
 
 
 def get_tree(hostname='192.168.0.99',

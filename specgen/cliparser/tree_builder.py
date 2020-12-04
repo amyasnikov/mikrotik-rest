@@ -2,8 +2,8 @@ import re
 from dataclasses import dataclass
 from typing import List, Callable
 from enum import Enum
+from mtwlib import Ssh
 
-from .ssh import Ssh
 from .parser import Parser
 from .clinode import CliNode, NodeType
 
