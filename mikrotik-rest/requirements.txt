@@ -1,4 +1,5 @@
 librouteros~=3.0.1
 expiringdict~=1.2.1
 connexion[swagger-ui]~=2.7.0
+uwsgi~=2.0.19
 #file:../mtwlib
