@@ -1,0 +1,11 @@
+_old/
+env/
+*.pyc
+.vscode
+__pycache__/
+/mtwlib/build/
+/mtwlib/mtwlib.egg-info/
+/mtwlib/dist/
+.idea/
+*.crt
+*.log
