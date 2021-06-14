@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys
 import os
 from collections import defaultdict
 from typing import Dict, List, Tuple, Set
@@ -55,11 +56,10 @@ class SpecGenerator:
 
 
 if __name__ == "__main__":
-    host, username, password = '192.168.0.99', 'test', 'test'
+    host, username, password = sys.argv[1:4]
     with Ssh(host, username, password) as ssh_client:
         sg = SpecGenerator(ssh_client, 'spec_template.yaml', '/')
-        with open('spec.yaml', 'w') as spec_file:
-            spec_file.write(sg.get_spec())
+        print(sg.get_spec())
 
 
 

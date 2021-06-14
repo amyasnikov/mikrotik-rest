@@ -1,3 +1,2 @@
-file:../mtwlib --no-index
 anytree~=2.8.0
 Jinja2~=2.11.1
