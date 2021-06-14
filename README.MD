@@ -5,7 +5,9 @@ This project consists of 2 main apps:
 
 ## Quickstart
 The easiest way to start the mikrotik-rest server is through docker.
-`docker run -d -e MIKROTIK_USER=test -e MIKROTIK_PASSWD=TEST -p 8080:8080 myantt/mikrotik-rest`
+
+```docker run -d -e MIKROTIK_USER=test -e MIKROTIK_PASSWD=TEST -p 8080:8080 myantt/mikrotik-rest```
+
 Now you can open your browser at
 http://localhost:8080/v1/ui/
 to see the the Swagger UI. It helps to discover all available API endpoints and methods.
@@ -13,7 +15,9 @@ By default this server is using the spec generated from Mikrotik hAP Lite router
 
 
 To run **specgen** app  you need to type the following:
-`docker run --rm -it specgen 192.168.0.99 user password > /path/to/mikrotik-rest/api/spec.yaml`
+
+```docker run --rm -it specgen 192.168.0.99 user password > /path/to/mikrotik-rest/api/spec.yaml```
+
 In this example:
 * `192.168.0.99` - MikroTik IP address
 * `user` - MikroTik username
