@@ -7,6 +7,72 @@ info:
 servers:
   - url: http://localhost/v1
 paths:
+  /runTemplate:
+    post:
+      operationId: api.ssh.run_template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                hosts:
+                  description: Hosts list to run template on
+                  type: array
+                  items:
+                    type: string
+                commands:
+                  description: Commands list to execute
+                  type: array
+                  items:
+                    type: string
+      responses:
+        201:
+          description: 'Executed'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hosts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        error:
+                          type: boolean
+                        errorCode:
+                          type: integer
+                        errorMessage:
+                          type: string
+                        reply:
+                          type: string
+                      
+
+  /{hostname}/radius:
+    parameters:
+    - $ref: "#/components/parameters/hostname"
+    get:
+      operationId: api.api.radius_get
+      parameters:
+      - $ref: "#/components/parameters/fields"
+      - $ref: "#/components/parameters/where"
+      - $ref: "#/components/parameters/limit"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/id'
+                    - $ref: '#/components/schemas/radius'
+                    - $ref: '#/components/schemas/read_only_obj'
+                      
+
 {% for endpoint in endpoints %}
   {% set ep_underscored = endpoint | trim('/') | replace ('/', '_') %}
   {% if endpoints[endpoint]['commands'] %}
@@ -15,7 +81,7 @@ paths:
     - $ref: "#/components/parameters/hostname"
   {% for method in endpoints[endpoint]['commands'] %}
     {{ method }}:
-      operationId: api.cfg.{{ ep_underscored + '_' + method  }}
+      operationId: api.api.{{ ep_underscored + '_' + method  }}
   {% if method == 'get' %}
       parameters:
       - $ref: "#/components/parameters/fields"
