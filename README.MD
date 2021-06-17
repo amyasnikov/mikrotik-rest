@@ -6,12 +6,12 @@ This project consists of 2 main apps:
 ## Quickstart
 The easiest way to start the mikrotik-rest server is through docker.
 
-```docker run -d -e MIKROTIK_USER=test -e MIKROTIK_PASSWD=TEST -p 8080:8080 myantt/mikrotik-rest```
+```docker run -d -e MIKROTIK_USER=test -e MIKROTIK_PASSWD=test -p 8080:8080 myantt/mikrotik-rest```
 
 Now you can open your browser at
 http://localhost:8080/v1/ui/
-to see the the Swagger UI. It helps to discover all available API endpoints and methods.
-By default this server is using the spec generated from Mikrotik hAP Lite router. If you want some another spec, then you have generate it by yourself using **specgen**.
+to see the Swagger UI. It helps to discover all available API endpoints and methods.
+By default this server is using the spec generated from Mikrotik hAP Lite router. If you want some another spec, then you have to generate it by yourself using **specgen**.
 
 
 To run **specgen** app  you need to type the following:
@@ -22,7 +22,52 @@ In this example:
 * `192.168.0.99` - MikroTik IP address
 * `user` - MikroTik username
 * `password` - MikroTik password
-Configuration parsing may take a lot of time (10-20 mins), please be patient.
+Configuration parsing requires a lot of consecutive queries to mikrotik and may take significant amount of time  (10-20 mins), please be patient.
 
 
+## API Calls Examples
 
+Let's say we want to get all IP addresses (**/ip address** menu from MikroTik CLI) of the router with mgmt IP 192.168.0.99
+```
+$ curl -X GET "http://localhost:8080/v1/192.168.0.99/ip/address" -H  "accept: application/json"
+[
+  {
+    ".id": "*5",
+    "actual-interface": "LAN",
+    "address": "192.168.0.99/24",
+    "disabled": false,
+    "dynamic": false,
+    "interface": "LAN",
+    "invalid": false,
+    "network": "192.168.0.0"
+  },
+  {
+    ".id": "*E",
+    "actual-interface": "ether1",
+    "address": "242.33.238.109/24",
+    "disabled": false,
+    "dynamic": false,
+    "interface": "ether1",
+    "invalid": false,
+    "network": "242.33.238.0"
+  },
+  {
+    ".id": "*1E",
+    "actual-interface": "wlan1",
+    "address": "192.168.43.121/24",
+    "disabled": false,
+    "dynamic": true,
+    "interface": "wlan1",
+    "invalid": false,
+    "network": "192.168.43.0"
+  }
+]
+```
+If we want to add a new ip address, then we need to use HTTP POST at the same URL and fill required parameters (at least *interface* and *address*) in the request body.
+```
+$ curl -X POST "http://localhost:8080/v1/192.168.0.99/ip/address" -H  "accept: application/json" -H  "Content-Type: application/json" -d '{"address":"203.0.113.1/25", "interface":"ether4"}'
+{
+  ".id": "*20"
+}
+```
+The returned value **\*20** is the MikroTik internal ID for created entity.
