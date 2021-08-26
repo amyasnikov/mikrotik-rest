@@ -22,6 +22,7 @@ In this example:
 * `192.168.0.99` - MikroTik IP address
 * `user` - MikroTik username
 * `password` - MikroTik password
+
 Configuration parsing requires a lot of consecutive queries to mikrotik and may take significant amount of time  (10-20 mins), please be patient.
 
 
